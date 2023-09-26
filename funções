@@ -1,0 +1,208 @@
+#include "funções.h" //biblioteca com o Struct Cliente
+#include <dirent.h>  //puxa o DIR
+#include <errno.h>   //importa o erro
+#include <malloc.h>  //usada para criar um ponteiro
+#include <stdio.h> //biblioteca usada para a leitura e impressão de dados, tanto no terminal quanto no arquivo
+#include <string.h>   //biblioteca usada para comparar strings
+#include <sys/stat.h> //biblioteca usada para criar e deletar pastas
+#include <time.h>     //biblioteca usada para pegar a data da operação
+#include <unistd.h>
+
+void criar_conta() {
+  // imprime na tela a diferença entre os dois tipos de conta, comum e plus
+  printf("Conta comum (1): \n"
+         "\t Cobra uma taxa de 5%% a cada débito realizado\n"
+         "\t Permite um saldo negativo de até R$1000,00\n"
+         "Conta plus (2): \n"
+         "\t Cobra uma taxa de 3%% a cada débito realizado\n"
+         "\t Permite um saldo negativo de até R$5000,00\n");
+
+  int tipo;
+  printf("Tipo de conta (1 ou 2): \n");
+  scanf("%d", &tipo); // o consumidor escolhe o tipo de conta
+  if (tipo == 1) {
+    Cliente *c = (Cliente *)malloc(
+        sizeof(Cliente)); // abre um ponteiro para do tipo Cliente (definido no
+                          // Struct no arquivo funções.h)
+    char nome[30];
+    printf("Razão social: (limite-se a 30 caracteres)\n");
+    scanf("%s", c->nome);     // nome da empresa é definida
+    while (getchar() != '\n') // essa função limpa o buffer
+      ;
+    char cnpj[12];
+    printf("CNPJ: (somente números)\n");
+    scanf("%s", cnpj); // CNPJ da empresa é definida e será usada para poder
+                       // guardar as informações da conta
+    while (getchar() != '\n')
+      ;
+    DIR *dir = opendir(cnpj);
+    if (dir) { // se ele existir essa é a opção aplicada
+      closedir(dir);
+      printf("Esse CNPJ já possui uma conta no banco.\n");
+    } else if (ENOENT ==
+               errno) { // o diretório não existe, portanto, a conta será criada
+      printf("Valor inicial da conta: \n");
+      double valor;
+      scanf("%lf", &valor); // define o valor inicial na conta
+      printf("Senha de quatro numeros: \n");
+      int senha;
+      scanf(
+          "%d",
+          &senha); // define a senha que será usada para acessar as informações
+      mkdir(cnpj, 0700); // abre o arquivo com o nome do CNPJ
+      char path[50];
+      sprintf(path, "%s/cliente", cnpj); // gerando o path para a pasta do CNPJ
+      FILE *f = fopen(
+          path,
+          "wb"); // abre o arquivo para que salve as informações do cliente
+      c->saldo = valor; // salva o saldo inicial na conta no ponteiro
+      c->senha = senha; // salva a senha da conta no ponteiro
+      c->tipo = 1; // salva o tipo de conta no ponteiro (conta do tipo comum)
+      fwrite(c, sizeof(Cliente), 1, f); // salva o ponteiro do tipo Cliente no
+                                        // arquivo f aberto quatro linhas a cima
+      fclose(f);                        // fecha o arquivo
+      geraExtrato(cnpj);
+    } else {
+    }
+    return;
+
+  } else if (tipo == 2) { // função baseada na função usada para a criação de
+                          // conta comum com poucas alterações para a conta plus
+    char nome[30];
+    printf("Razão social: (limite-se a 30 caracteres)\n");
+    scanf("%s", nome);
+    while (getchar() != '\n')
+      ;
+    printf("CNPJ: (somente números)\n");
+    char cnpj[12];
+    scanf("%s", cnpj);
+
+    DIR *dir = opendir(cnpj);
+    if (dir) { // caso exista
+      closedir(dir);
+      printf("Esse CNPJ já possuí uma conta neste banco.\n");
+    } else if (ENOENT == errno) { // caso não exista, ela cria uma
+      printf("Valor inicial da conta: \n");
+      double valor;
+      scanf("%lf", &valor);
+      printf("Senha de quatro numeros: \n");
+      int senha;
+      scanf("%d", &senha);
+      Cliente *c = (Cliente *)malloc(sizeof(Cliente));
+      mkdir(cnpj, 0700); // abre o arquivo com o nome do CNPJ
+      char path[50];
+      sprintf(path, "%s/cliente", cnpj);
+      FILE *f = fopen(path, "wb");
+      c->saldo = valor;
+      c->senha = senha;
+      c->tipo = 2; // conta do tipo plus
+
+      fwrite(c, sizeof(Cliente), 1, f);
+      fclose(f);
+      geraExtrato(cnpj);
+    } else { // caso dê erro para abrir
+    }
+    return;
+  } else {
+    printf("Tipo de conta inválido\n"); // mostra, caso nenhuma das opções
+                                        // válidas de conta for digitada, a
+                                        // mensagem de erro
+    return;
+  }
+}
+
+void apagar_cliete() { // função que apaga clientes
+  printf("CNPJ que a conta deve ser apagado (somente números): \n");
+  char cnpj[12];
+  scanf("%s", cnpj); // recebe o CNPJ da conta que deseja ser removida
+  DIR *dir = opendir(cnpj);
+  if (dir) { // caso exista conta com esse CNPJ
+    closedir(dir);
+    char path[50];
+    sprintf(path, "%s/cliente", cnpj); // gera o caminho para o arquivo cliente
+                                       // do CNPJ do cliente a ser apagado
+    remove(path);                      // remove o arquiv cliente
+    sprintf(path, "%s/extrato.txt",
+            cnpj); // gera o caminho para o arquivo extrato.txt do CNPJ do
+                   // cliente a ser apagado
+    remove(path);  // remove o extrato.txt
+    rmdir(cnpj);   // remove a pasta do CNPJ
+    printf("Conta removida com sucesso\n"); // mostra a mensagem de sucesso
+  } else if (ENOENT == errno) {             // caso não exista
+    printf("CNPJ não tem conta nesse banco.\n");
+  } else { // caso dê erro
+  }
+
+  char path[50];
+  sprintf(path, "%s/cliente", cnpj); // gera o caminho para o arquivo cliente do
+                                     // CNPJ do cliente a ser apagado
+  remove(path);                      // remove o arquiv cliente
+  sprintf(path, "%s/extrato.txt",
+          cnpj); // gera o caminho para o arquivo extrato.txt do CNPJ do cliente
+                 // a ser apagado
+  remove(path);  // remove o extrato.txt
+  rmdir(cnpj);   // remove a pasta do CNPJ
+  printf("Conta removida com sucesso\n"); // mostra a mensagem de sucesso
+}
+
+void clearBuffer() { // função que limpa buffer para usar no funções_conta.c
+  char c;
+  do {
+    c = getchar();
+  } while (c != '\n' && c != EOF);
+}
+
+Cliente *
+buscarCliente(char cnpj[12]) { // recebe o CNPJ e manda de volta o ponteiro com
+                               // as informações do cliente
+  char path[50];
+  sprintf(path, "%s/cliente", cnpj);
+  Cliente *c = (Cliente *)malloc(sizeof(Cliente));
+  FILE *f = fopen(path, "rb");
+  fread(c, sizeof(Cliente), 1, f);
+  fclose(f);
+  return c; // retorna o ponteiro com as infos do cliente
+}
+
+void *
+atualizarCliente(char cnpj[12],
+                 Cliente *c) { // atualiza o cliente recebendo o CNPJ e o
+                               // ponteiro com as informações e retorna nada
+  char path[50];
+  sprintf(path, "%s/cliente", cnpj);
+  FILE *f = fopen(path, "wb");
+  fwrite(c, sizeof(Cliente), 1,
+         f); // reescreve as infos dos clientes no arquivo binário
+  fclose(f);
+  return 0;
+}
+
+void *geraExtrato(char cnpj[12]) { // gera o txt do extrato
+  char path[50];
+  sprintf(path, "%s/extrato.txt", cnpj);
+  FILE *ext = fopen(path, "w");
+  fclose(ext);
+  return 0;
+}
+
+void *atualizaExtrato(char ext[100],
+                      char cnpj[12]) { // atualiza o extrato com as informações
+                                       // das transações feitas
+  char path[50];
+  sprintf(path, "%s/extrato.txt", cnpj);
+  FILE *extra = fopen(path, "a");
+  char extrato[300];
+  time_t date; // recebe a data
+  time(&date); // converte para o horáio convencional
+  sprintf(extrato, "%s %s\n", ctime(&date), ext);
+  fputs(extrato, extra); // atualiza o extrato
+  fclose(extra);
+  return 0;
+}
+
+FILE *lerExtrato(char cnpj[12]) { // lê o extrato sem alterar nada
+  char path[50];
+  sprintf(path, "%s/extrato.txt", cnpj);
+  FILE *extra = fopen(path, "r");
+  return extra; // envia o extrato para a função de leitura
+}
