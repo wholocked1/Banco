@@ -1,0 +1,48 @@
+#include "funções.h"
+#include "funções_conta.h"
+#include <stdio.h>
+
+void menu() { // função para trazer o menu sempre que chamado
+  printf(
+      "Escreva o número referente a qual tipo de operação deseja ser feita. \n"
+      "1: Abrir uma conta \n"
+      "2: Apagar uma conta \n"
+      "3: Fazer debito em uma conta \n"
+      "4: Fazer depósito em uma conta \n"
+      "5: Ver o extrato da conta \n"
+      "6: Fazer transferência entre contas \n"
+      "7: Verificar saldo\n"
+      "8: Sair\n");
+}
+
+int main() {
+  printf("Bem vindo ao Banco!\n");
+  int escolha;
+  menu();
+  printf("Escolha desejada: ");
+  scanf("%d", &escolha); // recebe a primeira escolhar
+
+  while (escolha != 8) {
+    if (escolha == 1) { // chama a função cria conta
+      criar_conta();
+    } else if (escolha == 2) { // chama a função apaga cliente
+      apagar_cliete();
+    } else if (escolha == 3) { // chama a função de debito
+      debito();
+    } else if (escolha == 4) { // chama a função de depósito
+      deposito();
+    } else if (escolha == 5) { // chama a função de extrato
+      extrato();
+    } else if (escolha == 6) { // chama a função de transferência
+      transferencia();
+    } else if (escolha == 7) { // chama a função de saldo
+      saldo();
+    } else { // caso nenhuma das opções válidas seja digitada
+      printf("Opção inválida\n");
+    }
+    menu();
+    printf("Escolha desejada: ");
+    scanf("%d", &escolha); // recebe as demais escolhas
+  }
+  printf("Agradeçemos a sua visita!");
+}
